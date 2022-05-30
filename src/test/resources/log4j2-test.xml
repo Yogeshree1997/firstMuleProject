@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration>
+
+    <Appenders>
+
+         <Http name="Splunk" url="http://localhost:8088/services/collector/raw">
+             <Property name="Authorization" value="Splunk c7992ddc-b615-4626-9de2-9a68f948004a" ></Property>
+             <PatternLayout pattern="[%d{MM-dd HH:mm:ss}] %-5p %c{1} [%t]: %m%n"></PatternLayout>
+        </Http>
+</Appenders>
+    
+
+    <Loggers>
+        <!-- Http Logger shows wire traffic on DEBUG -->
+        <!--AsyncLogger name="org.mule.service.http.impl.service.HttpMessageLogger" level="DEBUG"/-->
+        <AsyncLogger name="org.mule.service.http" level="WARN"/>
+        <AsyncLogger name="org.mule.extension.http" level="WARN"/>
+
+        <!-- Reduce startup noise -->
+        <AsyncLogger name="com.mulesoft.mule.runtime.plugin" level="WARN"/>
+        <AsyncLogger name="org.mule.maven.client" level="WARN"/>
+        <AsyncLogger name="org.mule.runtime.core.internal.util" level="WARN"/>
+        <AsyncLogger name="org.quartz" level="WARN"/>
+        <AsyncLogger name="org.mule.munit.plugins.coverage.server" level="WARN"/>
+
+        <!-- Mule logger -->
+        <AsyncLogger name="org.mule.runtime.core.internal.processor.LoggerMessageProcessor" level="INFO"/>
+
+        
+         <AsyncRoot level="INFO">
+
+            <AppenderRef ref="Splunk" ></AppenderRef>
+
+         </AsyncRoot>
+        
+    </Loggers>
+
+</Configuration>
