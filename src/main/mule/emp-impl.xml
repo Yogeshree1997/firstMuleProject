@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:crypto="http://www.mulesoft.org/schema/mule/crypto" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/crypto http://www.mulesoft.org/schema/mule/crypto/current/mule-crypto.xsd">
+	<db:config name="Database_Config" doc:name="Database Config" doc:id="6be63d63-05bc-4b21-8a5b-aeb37b265b6e" >
+		<db:my-sql-connection host="localhost" port="3306" user="root" password="12345678" database="employeedetails" />
+	</db:config>
+	<flow name="get-emp-Flow" doc:id="36ac8e19-85e4-4813-826a-7dc952fb0ea9" >
+		<db:select doc:name="Select" doc:id="d0ce10b3-9f0f-4a55-9abc-b73bac553452" config-ref="Database_Config">
+			<db:sql ><![CDATA[select * from employee where id= :id]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	id: attributes.uriParams.id
+}]]]></db:input-parameters>
+		</db:select>
+		<ee:transform doc:name="Transform Message" doc:id="9998aa2a-202f-4580-b19c-90cbc3de601a" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="add-employee" doc:id="c2026c07-4cdf-45d3-a5b7-66090027e97e" >
+		<set-variable value="#[payload]" doc:name="post" doc:id="7b37c8e8-b52d-4815-ae21-3ce9688d3092" variableName="payload" />
+		<set-variable value="#[payload.id]" doc:name="empid" doc:id="c604b94e-9b1c-4556-b44d-49794fd8e051" variableName="empid" />
+		<db:select doc:name="Select" doc:id="a55c6edc-0e1e-4d4d-9491-5fc2fcb54f08" config-ref="Database_Config" >
+			<db:sql ><![CDATA[select * from employee where id= :id]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{id: vars.empid}]]]></db:input-parameters>
+		</db:select>
+		<choice doc:name="Choice" doc:id="610a3053-e948-4aaf-b297-07b471c2e72d" >
+			<when expression="#[sizeOf(payload)== 0]" >
+				<db:insert doc:name="Insert" doc:id="1070ebf1-c7e8-44af-aaaa-81dcbba496ca" config-ref="Database_Config" >
+					<db:sql ><![CDATA[insert into employee (id, name, designation, salary)
+values (:id, :name, :designation, :salary)]]></db:sql>
+					<db:input-parameters ><![CDATA[#[{
+	'id': vars.payload.id,
+	'name': vars.payload.name,
+	'designation': vars.payload.designation,
+	'salary': vars.payload.salary
+	
+}]]]></db:input-parameters>
+				</db:insert>
+			</when>
+			<otherwise >
+				<raise-error doc:name="Raise error" doc:id="1f6da14b-9890-4166-80ea-11db306cd317" type="ID: ALREADY_EXISTS" description="empid already exists" />
+			</otherwise>
+		</choice>
+		<ee:transform doc:name="Transform Message" doc:id="976eb000-ff04-4701-9311-72103a2134b9" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	message:"employee added"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<error-handler >
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="71ac48aa-e287-44a3-8ebb-1717a19e3e7f" type="ID: ALREADY_EXISTS" >
+				<ee:transform doc:name="Transform Message" doc:id="6d3b5366-37c6-40e3-9d63-65a3980f58e1" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	message: "empId already exists"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+</mule>
